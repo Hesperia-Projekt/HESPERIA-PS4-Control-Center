@@ -20,7 +20,7 @@ DL, USB, LOG = BASE/'07_DOWNLOADS', BASE/'08_USB_EXPORT', BASE/'10_LOGS'
 LIB = BASE/'09_RETRO'/'LIBRARY'
 DOWNLOAD_INDEX = DL/'download_index.json'
 PORT, RPI_PORTS = 8088, (12800,12801)
-UA = {'User-Agent': 'HESPERIA-PS4-Control-Center-v21'}
+UA = {'User-Agent': 'HESPERIA-PS4-Control-Center-v22'}
 STATE, STATE_LOCK = {'ps4': None, 'queue': [], 'last_scan': [], 'started': int(time.time()), 'jobs': {}, 'transfers': []}, threading.Lock()
 for folder in (DL, USB, LOG, LIB): folder.mkdir(parents=True, exist_ok=True)
 
@@ -245,7 +245,7 @@ class Handler(SimpleHTTPRequestHandler):
                 state['transfers']=[dict(item) for item in STATE['transfers']]
             peer=self.client_address[0]
             can_open_usb=ipaddress.ip_address(peer).is_loopback or peer in local_ipv4_addresses()
-            return self._json({'ok':True,'version':'21.0','http_port':PORT,'local_url':f'http://127.0.0.1:{PORT}','lan_url':f'http://{local_ip()}:{PORT}','local_ips':local_ipv4_addresses(),'downloads':downloads,'offline_packages':offline_packages,'can_open_usb':can_open_usb,**state})
+            return self._json({'ok':True,'version':'22.0','http_port':PORT,'local_url':f'http://127.0.0.1:{PORT}','lan_url':f'http://{local_ip()}:{PORT}','local_ips':local_ipv4_addresses(),'downloads':downloads,'offline_packages':offline_packages,'can_open_usb':can_open_usb,**state})
         if path=='/api/catalog':
             # Return local catalog immediately. GitHub checks happen only after
             # the user asks to download a package, so the first render is fast.
@@ -331,7 +331,8 @@ class Handler(SimpleHTTPRequestHandler):
                 selected_ids=set(body.get('ids',[]))
                 selected_files={Path(str(name)).name for name in body.get('files',[])}
                 export_root=USB/('HESPERIA_USB_INSTALL_'+time.strftime('%Y%m%d_%H%M%S'))
-                pkg_dir, data_dir=export_root/'PKG', export_root/'DATA'
+                # GoldHEN's USB Package Installer scans the drive root (usb:/).
+                pkg_dir, data_dir=export_root, export_root/'DATA'
                 pkg_dir.mkdir(parents=True); data_dir.mkdir(parents=True)
                 copied=[]; missing_items=[]
                 for item in cfg()['items']:
@@ -351,13 +352,13 @@ class Handler(SimpleHTTPRequestHandler):
                         if not target.exists(): shutil.copy2(source,target)
                         if not any(entry['file']==target.relative_to(export_root).as_posix() for entry in copied):
                             copied.append({'id':'local_pkg','file':target.relative_to(export_root).as_posix(),'bytes':target.stat().st_size,'sha256':sha256(target)})
-                bootstrap=pkg_dir/'Remote_Package_Installer.pkg'
+                bootstrap=export_root/'Remote_Package_Installer.pkg'
                 if bootstrap.exists():
-                    bootstrap_note='Remote Package Installer wurde gefunden und liegt unter PKG/ bereit.'
+                    bootstrap_note='Remote Package Installer wurde gefunden und liegt im USB-Stammverzeichnis bereit.'
                 else:
-                    bootstrap_note='Für die einmalige RPI-Einrichtung die rechtmäßig bezogene Datei Remote_Package_Installer.pkg in diesen PKG-Ordner kopieren und auf der PS4 über den normalen Package Installer installieren.'
+                    bootstrap_note='Für die einmalige RPI-Einrichtung die rechtmäßig bezogene Datei Remote_Package_Installer.pkg in dieses USB-Stammverzeichnis kopieren und auf der PS4 über den normalen Package Installer installieren.'
                 (export_root/'README_INSTALLATION.txt').write_text(
-                    'HESPERIA USB-Auswahl\n\n1. GoldHEN auf der eigenen PS4 aktivieren.\n2. USB-Stick einstecken und die PKGs unter PKG über den normalen Package Installer installieren.\n3. Für LAN-Automatisierung Remote Package Installer einmalig installieren und auf der PS4 starten.\n4. Danach HESPERIA am PC/PS4-Browser öffnen, PS4 suchen, Auswahl herunterladen und automatisch übergeben.\n\n'+bootstrap_note+'\n\nDatenbanken unter DATA sind keine installierbaren PKGs.\n',encoding='utf-8')
+                    'HESPERIA USB-Auswahl\n\n1. GoldHEN auf der eigenen PS4 aktivieren.\n2. USB-Stick einstecken. Die PKG-Dateien liegen direkt im Stammverzeichnis des Exports; auf der PS4 GoldHEN → Debug Settings → Package Installer öffnen.\n3. Für LAN-Automatisierung Remote Package Installer einmalig installieren und auf der PS4 starten.\n4. Danach HESPERIA am PC/PS4-Browser öffnen, PS4 suchen, Auswahl herunterladen und automatisch übergeben.\n\n'+bootstrap_note+'\n\nDatenbanken unter DATA sind keine installierbaren PKGs.\n',encoding='utf-8')
                 (export_root/'MANIFEST.json').write_text(json.dumps(copied,ensure_ascii=False,indent=2),encoding='utf-8')
                 log_event('usb_export',{'count':len(copied),'ids':list(selected_ids)})
                 return self._json({'ok':True,'path':str(export_root),'files':copied,'not_downloaded':missing_items,'bootstrap_note':bootstrap_note})
@@ -408,7 +409,7 @@ if __name__=='__main__':
     if not httpd:
         raise RuntimeError('Kein freier Port zwischen 8088 und 8097 verfügbar.')
     pc_url=f'http://127.0.0.1:{PORT}'
-    print('HESPERIA PS4 Control Center v21')
+    print('HESPERIA PS4 Control Center v22')
     print('PC :',pc_url)
     print('PS4:',', '.join(f'http://{address}:{PORT}' for address in local_ipv4_addresses()))
     print('Windows-Firewall beim ersten Start für private Netzwerke erlauben.')
