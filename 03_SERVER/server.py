@@ -20,7 +20,7 @@ DL, USB, LOG = BASE/'07_DOWNLOADS', BASE/'08_USB_EXPORT', BASE/'10_LOGS'
 LIB = BASE/'09_RETRO'/'LIBRARY'
 DOWNLOAD_INDEX = DL/'download_index.json'
 PORT, RPI_PORTS = 8088, (12800,12801)
-UA = {'User-Agent': 'HESPERIA-PS4-Control-Center-v20'}
+UA = {'User-Agent': 'HESPERIA-PS4-Control-Center-v21'}
 STATE, STATE_LOCK = {'ps4': None, 'queue': [], 'last_scan': [], 'started': int(time.time()), 'jobs': {}, 'transfers': []}, threading.Lock()
 for folder in (DL, USB, LOG, LIB): folder.mkdir(parents=True, exist_ok=True)
 
@@ -233,10 +233,19 @@ class Handler(SimpleHTTPRequestHandler):
         path=urlparse(self.path).path
         if path=='/api/status':
             downloads=[{'name':item.name,'size':item.stat().st_size,'pkg':item.suffix.lower()=='.pkg'} for item in DL.iterdir() if item.is_file() and not item.name.endswith('.part')]
+            download_index=read_download_index(); offline_packages=[]
+            for item in cfg()['items']:
+                entry=download_index.get(item['id'])
+                if not entry: continue
+                local_file=DL/Path(str(entry.get('file',''))).name
+                if local_file.is_file() and local_file.stat().st_size==entry.get('bytes'):
+                    offline_packages.append({'id':item['id'],'file':local_file.name,'bytes':local_file.stat().st_size})
             with STATE_LOCK:
                 state={key:STATE[key] for key in ('ps4','queue','last_scan','started')}
                 state['transfers']=[dict(item) for item in STATE['transfers']]
-            return self._json({'ok':True,'version':'20.0','http_port':PORT,'local_url':f'http://127.0.0.1:{PORT}','lan_url':f'http://{local_ip()}:{PORT}','local_ips':local_ipv4_addresses(),'downloads':downloads,**state})
+            peer=self.client_address[0]
+            can_open_usb=ipaddress.ip_address(peer).is_loopback or peer in local_ipv4_addresses()
+            return self._json({'ok':True,'version':'21.0','http_port':PORT,'local_url':f'http://127.0.0.1:{PORT}','lan_url':f'http://{local_ip()}:{PORT}','local_ips':local_ipv4_addresses(),'downloads':downloads,'offline_packages':offline_packages,'can_open_usb':can_open_usb,**state})
         if path=='/api/catalog':
             # Return local catalog immediately. GitHub checks happen only after
             # the user asks to download a package, so the first render is fast.
@@ -269,6 +278,22 @@ class Handler(SimpleHTTPRequestHandler):
                 log_event('import',{'file':name,'bytes':received})
                 return self._json({'ok':True,'file':name,'bytes':received,'sha256':sha256(destination)})
             body,path=self._body(),path
+            if path=='/api/open-usb':
+                peer=self.client_address[0]
+                if not (ipaddress.ip_address(peer).is_loopback or peer in local_ipv4_addresses()):
+                    return self._json({'error':'USB-Ordner können nur lokal am PC im Explorer geöffnet werden.'},403)
+                USB.mkdir(parents=True,exist_ok=True)
+                exports=[item for item in USB.glob('HESPERIA_USB_INSTALL_*') if item.is_dir()]
+                target=max(exports,key=lambda item:item.stat().st_mtime) if exports else USB
+                if os.name=='nt': os.startfile(str(target))
+                elif sys.platform=='darwin':
+                    import subprocess
+                    subprocess.Popen(['open',str(target)])
+                else:
+                    import subprocess
+                    subprocess.Popen(['xdg-open',str(target)])
+                log_event('usb_open',{'path':str(target)})
+                return self._json({'ok':True,'path':str(target)})
             if path=='/api/download':
                 wanted=[item['id'] for item in cfg()['items'] if item['id'] in set(body.get('ids',[]))]
                 if not wanted: return self._json({'error':'Keine gültigen Pakete ausgewählt.'},400)
@@ -383,7 +408,7 @@ if __name__=='__main__':
     if not httpd:
         raise RuntimeError('Kein freier Port zwischen 8088 und 8097 verfügbar.')
     pc_url=f'http://127.0.0.1:{PORT}'
-    print('HESPERIA PS4 Control Center v20')
+    print('HESPERIA PS4 Control Center v21')
     print('PC :',pc_url)
     print('PS4:',', '.join(f'http://{address}:{PORT}' for address in local_ipv4_addresses()))
     print('Windows-Firewall beim ersten Start für private Netzwerke erlauben.')

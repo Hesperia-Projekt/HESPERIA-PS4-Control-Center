@@ -1,7 +1,11 @@
 @echo off
 setlocal
 cd /d "%~dp0.."
-title HESPERIA PS4 Control Center v20
+title HESPERIA PS4 Control Center v21
+if exist "HESPERIA_PS4_Control_Center_v21.exe" (
+  start "HESPERIA PS4 Control Center" "HESPERIA_PS4_Control_Center_v21.exe"
+  goto :eof
+)
 if exist "HESPERIA_PS4_Control_Center_v20.exe" (
   start "HESPERIA PS4 Control Center" "HESPERIA_PS4_Control_Center_v20.exe"
   goto :eof
