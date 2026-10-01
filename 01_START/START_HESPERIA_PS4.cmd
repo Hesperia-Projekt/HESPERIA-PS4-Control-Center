@@ -1,0 +1,14 @@
+@echo off
+setlocal
+cd /d "%~dp0.."
+title HESPERIA PS4 Control Center v19
+if exist "HESPERIA_PS4_Control_Center_v19.exe" (
+  start "HESPERIA PS4 Control Center" "HESPERIA_PS4_Control_Center_v19.exe"
+  goto :eof
+)
+where py >nul 2>&1 && (py -3 "03_SERVER\server.py" & goto :eof)
+where python >nul 2>&1 && (python "03_SERVER\server.py" & goto :eof)
+echo Python 3 wurde nicht gefunden.
+echo Installiere Python 3 fuer Windows und starte diese Datei erneut.
+echo Beim ersten Start Zugriff in der Windows-Firewall fuer private Netzwerke erlauben.
+pause

@@ -1,0 +1,271 @@
+{
+  "items": [
+    {
+      "id": "cheats_manager",
+      "name": "PS4 Cheats Manager",
+      "category": "Cheats & Patches",
+      "github_repo": "bucanero/PS4CheatsManager",
+      "asset_regex": "\\.pkg$",
+      "note": "GoldHEN Cheat-/Patch-Manager. Aktualisiert Datenbanken direkt und filtert nach Title-ID/Version."
+    },
+    {
+      "id": "cheat_db",
+      "name": "GoldHEN Cheat Database",
+      "category": "Cheats & Patches",
+      "url": "https://github.com/GoldHEN/GoldHEN_Cheat_Repository/archive/refs/heads/main.zip",
+      "filename": "GoldHEN_Cheat_Repository-main.zip",
+      "note": "Aktuelle GoldHEN Cheat-Datenbank. Nur für eigene Spiele und passende CUSA/Version verwenden."
+    },
+    {
+      "id": "patch_db",
+      "name": "Game Patch Repository",
+      "category": "Cheats & Patches",
+      "url": "https://github.com/illusion0001/PS4-PS5-Game-Patch/archive/refs/heads/main.zip",
+      "filename": "PS4-PS5-Game-Patch-main.zip",
+      "note": "Community Game-Patches; CUSA und Spielversion müssen passen."
+    },
+    {
+      "id": "plugins",
+      "name": "GoldHEN Plugins Repository",
+      "category": "GoldHEN",
+      "url": "https://github.com/GoldHEN/GoldHEN_Plugins_Repository/archive/refs/heads/main.zip",
+      "filename": "GoldHEN_Plugins_Repository-main.zip",
+      "note": "Optionale GoldHEN-Plugins. Vor Aktivierung Kompatibilität prüfen."
+    },
+    {
+      "id": "pplay",
+      "name": "pPlay Media Player",
+      "category": "Media Center",
+      "github_repo": "Cpasjuste/pplay",
+      "asset_regex": "(?i)ps4.*\\.pkg$|\\.pkg$",
+      "note": "MPV/FFmpeg-basierter Player für PS4; Video, Audio, Untertitel sowie HTTP/FTP-Streaming."
+    },
+    {
+      "id": "pnes",
+      "name": "pNES – NES/Famicom",
+      "category": "Retro bis PS1",
+      "github_repo": "Cpasjuste/pemu",
+      "asset_regex": "(?i)PNES.*\\.pkg$",
+      "note": "NES/Famicom. pEMU-Projekt; v7.2 behebt PS4-Startprobleme."
+    },
+    {
+      "id": "psnes",
+      "name": "pSNES – Super Nintendo",
+      "category": "Retro bis PS1",
+      "github_repo": "Cpasjuste/pemu",
+      "asset_regex": "(?i)PSNE.*\\.pkg$",
+      "note": "SNES/Super Famicom via Snes9x-Core."
+    },
+    {
+      "id": "pgen",
+      "name": "pGEN – Mega Drive / Master System / Mega-CD",
+      "category": "Retro bis PS1",
+      "github_repo": "Cpasjuste/pemu",
+      "asset_regex": "(?i)PGEN.*\\.pkg$",
+      "note": "Sega 8/16-Bit und Mega-CD. BIOS nur aus eigener legaler Quelle."
+    },
+    {
+      "id": "pgba",
+      "name": "pGBA – Game Boy Advance",
+      "category": "Retro bis PS1",
+      "github_repo": "Cpasjuste/pemu",
+      "asset_regex": "(?i)PGBA.*\\.pkg$",
+      "note": "GBA. Auf PS4/PS4 Pro existieren noch einzelne offene Grafik-/Black-Screen-Berichte; daher optional."
+    },
+    {
+      "id": "pfbneo",
+      "name": "pFBNeo – Arcade / Neo Geo",
+      "category": "Retro bis PS1",
+      "github_repo": "Cpasjuste/pemu",
+      "asset_regex": "(?i)PFBN.*\\.pkg$",
+      "note": "Arcade/Neo Geo über FinalBurn Neo. ROM-/BIOS-Dateien werden nicht mitgeliefert."
+    }
+  ],
+  "presets": {
+    "essentials": [
+      "cheats_manager",
+      "pplay"
+    ],
+    "cheats": [
+      "cheats_manager",
+      "cheat_db",
+      "patch_db"
+    ],
+    "media": [
+      "pplay"
+    ],
+    "retro_best": [
+      "pnes",
+      "psnes",
+      "pgen",
+      "pfbneo"
+    ],
+    "all_safe": [
+      "cheats_manager",
+      "cheat_db",
+      "patch_db",
+      "plugins",
+      "pplay",
+      "pnes",
+      "psnes",
+      "pgen",
+      "pfbneo"
+    ],
+    "retro_all": [
+      "pnes",
+      "psnes",
+      "pgen",
+      "pgba",
+      "pfbneo"
+    ]
+  },
+  "retro_systems": [
+    {
+      "id": "nes",
+      "name": "NES / Famicom",
+      "emulator": "pNES",
+      "provider": "pnes",
+      "extensions": [
+        ".nes",
+        ".fds",
+        ".zip"
+      ],
+      "bios": []
+    },
+    {
+      "id": "snes",
+      "name": "SNES / Super Famicom",
+      "emulator": "pSNES",
+      "provider": "psnes",
+      "extensions": [
+        ".sfc",
+        ".smc",
+        ".zip"
+      ],
+      "bios": []
+    },
+    {
+      "id": "sega",
+      "name": "Mega Drive / Master System / Game Gear / Mega-CD",
+      "emulator": "pGEN",
+      "provider": "pgen",
+      "extensions": [
+        ".md",
+        ".gen",
+        ".bin",
+        ".sms",
+        ".gg",
+        ".cue",
+        ".chd",
+        ".zip"
+      ],
+      "bios": [
+        "Mega-CD BIOS (eigener Dump, je nach Region)"
+      ]
+    },
+    {
+      "id": "gba",
+      "name": "Game Boy Advance",
+      "emulator": "pGBA",
+      "provider": "pgba",
+      "extensions": [
+        ".gba",
+        ".zip"
+      ],
+      "bios": [],
+      "optional": true
+    },
+    {
+      "id": "arcade",
+      "name": "Arcade / Neo Geo",
+      "emulator": "pFBNeo",
+      "provider": "pfbneo",
+      "extensions": [
+        ".zip",
+        ".7z"
+      ],
+      "bios": [
+        "Systemabhängige BIOS/ROM-Sets aus eigener Quelle"
+      ]
+    },
+    {
+      "id": "ps1",
+      "name": "PlayStation 1",
+      "emulator": "Mednafen PSX (PS4 RetroBox/Linux) / native provider reserved",
+      "provider": null,
+      "extensions": [
+        ".cue",
+        ".bin",
+        ".chd",
+        ".pbp",
+        ".m3u",
+        ".ccd",
+        ".img",
+        ".iso",
+        ".mdf",
+        ".toc",
+        ".cbn"
+      ],
+      "bios": [
+        "PS1 BIOS aus eigener Konsole / legalem Dump"
+      ],
+      "status": "runtime_available_optional",
+      "note": "PS1 ist Kernfunktion. Bibliothek, BIOS-Validierung, Multi-Disc-M3U und USB-Export sind integriert. Verifizierter Laufzeitweg: PS4 RetroBox unter PS4-Linux mit mednafen_psx. Nativer Orbis-PKG-Slot bleibt für einen künftig verifizierten Build reserviert.",
+      "runtime": "retrobox_linux"
+    }
+  ],
+  "ps1": {
+    "priority": "critical",
+    "runtime_providers": [
+      {
+        "id": "retrobox_linux",
+        "name": "PS4 RetroBox / RetroArch",
+        "core": "mednafen_psx",
+        "status": "verified_working_upstream",
+        "url": "https://github.com/danyboy666/ps4-retrobox",
+        "notes": "PS4 RetroBox v1.7-stable: upstream PS1 Working. Aktuell vom Projekt nur auf CUH-1000/1100 (Aeolia) getestet; PS4 Pro nicht automatisch freigeben.",
+        "version": "v1.7-stable",
+        "retroarch": "1.22.2",
+        "compatibility": {
+          "verified_models": [
+            "CUH-1000",
+            "CUH-1100"
+          ],
+          "verified_firmware": [
+            "9.60"
+          ],
+          "ps4_pro": "unverified_upstream"
+        }
+      }
+    ],
+    "bios_known_md5": {
+      "scph5500.bin": "8dd7d5296a650fac7319bce665a6a53c",
+      "scph5501.bin": "490f666e1afb15b7362b406ed1cea246",
+      "scph5502.bin": "32736f17079d0b2b7024407c39bd3050",
+      "scph1001.bin": "924e392ed05558ffdb115408c263dccf",
+      "scph7001.bin": "1e68c231d0896b7eadcad1d7d8e76129"
+    },
+    "console_profiles": [
+      {
+        "id": "auto_unknown",
+        "name": "Automatisch / unbekannt",
+        "runtime_allowed": false,
+        "reason": "Modell muss vor Runtime-Vorbereitung bestätigt werden."
+      },
+      {
+        "id": "cuh1000_1100",
+        "name": "PS4 Fat CUH-1000/1100 (Aeolia)",
+        "runtime_allowed": true,
+        "runtime": "retrobox_linux",
+        "reason": "Vom RetroBox-Projekt getestet."
+      },
+      {
+        "id": "ps4_pro",
+        "name": "PS4 Pro (CUH-7xxx)",
+        "runtime_allowed": false,
+        "runtime": "retrobox_linux",
+        "reason": "RetroBox v1.7-stable ist upstream nicht für PS4 Pro verifiziert. Keine fremden Kernel/Payload-Dateien blind einsetzen."
+      }
+    ]
+  }
+}

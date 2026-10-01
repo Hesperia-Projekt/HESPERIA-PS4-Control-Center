@@ -1,0 +1,19 @@
+# Local runtime state and downloaded/selected packages
+HESPERIA_Data/
+07_DOWNLOADS/
+08_USB_EXPORT/
+10_LOGS/
+*.pkg
+*.part
+
+# Python and build artifacts
+__pycache__/
+*.py[cod]
+build/
+dist/
+*.spec.bak
+
+# Local editor / OS files
+.DS_Store
+Thumbs.db
+desktop.ini

@@ -1,0 +1,9 @@
+{
+  "provider": "retrobox_linux",
+  "profile": "cuh1000_1100",
+  "source": "https://github.com/danyboy666/ps4-retrobox",
+  "release": "v1.7-stable",
+  "core": "mednafen_psx",
+  "prepared": true,
+  "note": "Runtime-Binaries werden bewusst nicht gebündelt. Latest upstream release verwenden und Hashes vor Transfer erfassen."
+}
