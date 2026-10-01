@@ -4,7 +4,7 @@ from http.server import ThreadingHTTPServer, SimpleHTTPRequestHandler
 from pathlib import Path
 from urllib.parse import unquote, urlparse
 from email.utils import formatdate
-import concurrent.futures, hashlib, ipaddress, json, mimetypes, os, re, shutil, socket, sys, threading, time, urllib.error, urllib.request, webbrowser
+import concurrent.futures, hashlib, ipaddress, json, mimetypes, os, re, shutil, socket, sys, threading, time, urllib.error, urllib.request, webbrowser, zipfile
 
 if getattr(sys, 'frozen', False):
     # PyInstaller's one-file payload is extracted to _MEIPASS. Keep user data
@@ -20,7 +20,7 @@ DL, USB, LOG = BASE/'07_DOWNLOADS', BASE/'08_USB_EXPORT', BASE/'10_LOGS'
 LIB = BASE/'09_RETRO'/'LIBRARY'
 DOWNLOAD_INDEX = DL/'download_index.json'
 PORT, RPI_PORTS = 8088, (12800,12801)
-UA = {'User-Agent': 'HESPERIA-PS4-Control-Center-v22'}
+UA = {'User-Agent': 'HESPERIA-PS4-Control-Center-v23'}
 STATE, STATE_LOCK = {'ps4': None, 'queue': [], 'last_scan': [], 'started': int(time.time()), 'jobs': {}, 'transfers': []}, threading.Lock()
 for folder in (DL, USB, LOG, LIB): folder.mkdir(parents=True, exist_ok=True)
 
@@ -66,6 +66,11 @@ def latest_asset(repo,pattern):
     for asset in release.get('assets',[]):
         if regex.search(asset.get('name','')): return {'name':asset['name'],'url':asset['browser_download_url'],'tag':release.get('tag_name',''),'size':asset.get('size')}
     return None
+def verify_download_url(url):
+    request=urllib.request.Request(url,headers=UA,method='HEAD')
+    with urllib.request.urlopen(request,timeout=20) as response:
+        if response.status<200 or response.status>=400: raise RuntimeError(f'Downloadserver antwortet mit HTTP {response.status}')
+        return int(response.headers.get('Content-Length','0') or 0) or None
 def download(url,destination,progress=None):
     temporary=destination.with_suffix(destination.suffix+'.part')
     try:
@@ -80,6 +85,18 @@ def download(url,destination,progress=None):
                     progress(received,total,speed,(total-received)/speed if total and speed else None)
         temporary.replace(destination)
     finally: temporary.unlink(missing_ok=True)
+    return destination
+def unpack_pkg_archive(archive):
+    """Extract the first PS4 PKG from a trusted project release ZIP safely."""
+    with zipfile.ZipFile(archive) as bundle:
+        entries=[entry for entry in bundle.infolist() if not entry.is_dir() and entry.filename.lower().endswith('.pkg')]
+        if not entries: raise RuntimeError('Das Release-Archiv enthält keine installierbare .pkg-Datei')
+        entry=entries[0]; name=Path(entry.filename).name
+        if entry.file_size<=0 or entry.file_size>8*1024*1024*1024: raise RuntimeError('Ungültige PKG-Größe im Release-Archiv')
+        destination=DL/name
+        temporary=destination.with_suffix(destination.suffix+'.part')
+        with bundle.open(entry) as source,open(temporary,'wb') as output: shutil.copyfileobj(source,output,1024*1024)
+        temporary.replace(destination)
     return destination
 def start_download_job(ids):
     job_id=str(int(time.time()*1000)); job={'id':job_id,'state':'queued','created':int(time.time()),'items':[]}
@@ -96,12 +113,17 @@ def start_download_job(ids):
                 if not url or not name: raise RuntimeError('Keine nutzbare Downloadquelle')
                 target=DL/Path(name).name
                 if target.exists():
+                    if item.get('extract_pkg') and target.suffix.lower()=='.zip':
+                        pkg=unpack_pkg_archive(target); target.unlink(missing_ok=True); target=pkg
                     remember_download(item['id'],target)
                     record.update({'state':'already_downloaded','file':target.name,'received':target.stat().st_size,'total':target.stat().st_size}); continue
                 record.update({'state':'downloading','file':target.name})
                 def update(received,total,speed,eta):
                     with STATE_LOCK: record.update({'received':received,'total':total,'speed':round(speed,1),'eta':round(eta,1) if eta is not None else None})
-                download(url,target,update); remember_download(item['id'],target); record.update({'state':'done','received':target.stat().st_size,'total':target.stat().st_size,'speed':0,'eta':0})
+                download(url,target,update)
+                if item.get('extract_pkg') and target.suffix.lower()=='.zip':
+                    pkg=unpack_pkg_archive(target); target.unlink(missing_ok=True); target=pkg
+                remember_download(item['id'],target); record.update({'state':'done','file':target.name,'received':target.stat().st_size,'total':target.stat().st_size,'speed':0,'eta':0})
             except Exception as error: record.update({'state':'failed','error':str(error)})
         with STATE_LOCK: job['state']='done'; job['finished']=int(time.time())
         log_event('download',{'job':job_id,'items':job['items']})
@@ -245,11 +267,28 @@ class Handler(SimpleHTTPRequestHandler):
                 state['transfers']=[dict(item) for item in STATE['transfers']]
             peer=self.client_address[0]
             can_open_usb=ipaddress.ip_address(peer).is_loopback or peer in local_ipv4_addresses()
-            return self._json({'ok':True,'version':'22.0','http_port':PORT,'local_url':f'http://127.0.0.1:{PORT}','lan_url':f'http://{local_ip()}:{PORT}','local_ips':local_ipv4_addresses(),'downloads':downloads,'offline_packages':offline_packages,'can_open_usb':can_open_usb,**state})
+            return self._json({'ok':True,'version':'23.0','http_port':PORT,'local_url':f'http://127.0.0.1:{PORT}','lan_url':f'http://{local_ip()}:{PORT}','local_ips':local_ipv4_addresses(),'downloads':downloads,'offline_packages':offline_packages,'can_open_usb':can_open_usb,**state})
         if path=='/api/catalog':
             # Return local catalog immediately. GitHub checks happen only after
             # the user asks to download a package, so the first render is fast.
             c=cfg(); return self._json({'items':c['items'],'presets':c.get('presets',{}),'sources':'local catalog; live release lookup starts on download'})
+        if path=='/api/catalog/sources':
+            c=cfg(); resolved={}; results=[]
+            for item in c['items']:
+                try:
+                    if item.get('github_repo'):
+                        asset=latest_asset(item['github_repo'],item.get('asset_regex',r'\.pkg$'))
+                        if not asset: raise RuntimeError('Kein passendes Release-Asset gefunden')
+                        url=asset['url']; filename=asset['name']; version=asset.get('tag') or 'GitHub Release'; size=asset.get('size')
+                    else:
+                        url=item.get('url'); filename=item.get('filename'); version='Direktquelle'; size=None
+                        if not url or not filename: raise RuntimeError('Keine Downloadquelle konfiguriert')
+                    size=size or verify_download_url(url)
+                    kind='PS4-PKG im ZIP' if item.get('extract_pkg') else ('installierbare PS4-PKG' if filename.lower().endswith('.pkg') else 'Datenarchiv, keine installierbare PKG')
+                    results.append({'id':item['id'],'name':item['name'],'state':'available','url':url,'filename':filename,'version':version,'size':size,'kind':kind})
+                except Exception as error:
+                    results.append({'id':item['id'],'name':item['name'],'state':'unavailable','error':str(error)[:220]})
+            return self._json({'checked_at':int(time.time()),'items':results})
         if path=='/api/discover': return self._json({'local_ip':local_ip(),'candidates':scan_ps4(),'note':'RPI wird auf TCP-Port 12800 und 12801 geprüft.'})
         if path.startswith('/api/jobs/'):
             job_id=path.rsplit('/',1)[-1]
@@ -358,7 +397,7 @@ class Handler(SimpleHTTPRequestHandler):
                 else:
                     bootstrap_note='Für die einmalige RPI-Einrichtung die rechtmäßig bezogene Datei Remote_Package_Installer.pkg in dieses USB-Stammverzeichnis kopieren und auf der PS4 über den normalen Package Installer installieren.'
                 (export_root/'README_INSTALLATION.txt').write_text(
-                    'HESPERIA USB-Auswahl\n\n1. GoldHEN auf der eigenen PS4 aktivieren.\n2. USB-Stick einstecken. Die PKG-Dateien liegen direkt im Stammverzeichnis des Exports; auf der PS4 GoldHEN → Debug Settings → Package Installer öffnen.\n3. Für LAN-Automatisierung Remote Package Installer einmalig installieren und auf der PS4 starten.\n4. Danach HESPERIA am PC/PS4-Browser öffnen, PS4 suchen, Auswahl herunterladen und automatisch übergeben.\n\n'+bootstrap_note+'\n\nDatenbanken unter DATA sind keine installierbaren PKGs.\n',encoding='utf-8')
+                    'HESPERIA USB-Auswahl\n\n1. GoldHEN auf der eigenen PS4 aktivieren.\n2. USB-Stick einstecken. Alle PKGs liegen direkt im Stammverzeichnis. Auf der PS4 GoldHEN → Debug Settings → Package Installer öffnen und „Install All“ wählen. Dafür muss „Background Installation“ ausgeschaltet sein.\n3. Für LAN-Automatisierung Remote Package Installer einmalig installieren und auf der PS4 starten.\n4. Danach HESPERIA am PC/PS4-Browser öffnen, PS4 suchen, Auswahl herunterladen und automatisch übergeben.\n\n'+bootstrap_note+'\n\nDatenbanken unter DATA sind keine installierbaren PKGs.\n',encoding='utf-8')
                 (export_root/'MANIFEST.json').write_text(json.dumps(copied,ensure_ascii=False,indent=2),encoding='utf-8')
                 log_event('usb_export',{'count':len(copied),'ids':list(selected_ids)})
                 return self._json({'ok':True,'path':str(export_root),'files':copied,'not_downloaded':missing_items,'bootstrap_note':bootstrap_note})
@@ -367,7 +406,7 @@ class Handler(SimpleHTTPRequestHandler):
                 selected_ids=set(body.get('ids',[]))
                 download_index=read_download_index(); missing=[]
                 for item in cfg()['items']:
-                    if item['id'] not in selected_ids: continue
+                    if item['id'] not in selected_ids or item.get('installable') is False: continue
                     entry=download_index.get(item['id'])
                     if entry: requested.append(Path(entry['file']).name)
                     else: missing.append(item['name'])
@@ -409,7 +448,7 @@ if __name__=='__main__':
     if not httpd:
         raise RuntimeError('Kein freier Port zwischen 8088 und 8097 verfügbar.')
     pc_url=f'http://127.0.0.1:{PORT}'
-    print('HESPERIA PS4 Control Center v22')
+    print('HESPERIA PS4 Control Center v23')
     print('PC :',pc_url)
     print('PS4:',', '.join(f'http://{address}:{PORT}' for address in local_ipv4_addresses()))
     print('Windows-Firewall beim ersten Start für private Netzwerke erlauben.')

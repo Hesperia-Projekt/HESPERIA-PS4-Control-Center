@@ -12,6 +12,7 @@
       "id": "cheat_db",
       "name": "GoldHEN Cheat Database",
       "category": "Cheats & Patches",
+      "installable": false,
       "url": "https://github.com/GoldHEN/GoldHEN_Cheat_Repository/archive/refs/heads/main.zip",
       "filename": "GoldHEN_Cheat_Repository-main.zip",
       "note": "Aktuelle GoldHEN Cheat-Datenbank. Nur für eigene Spiele und passende CUSA/Version verwenden."
@@ -20,6 +21,7 @@
       "id": "patch_db",
       "name": "Game Patch Repository",
       "category": "Cheats & Patches",
+      "installable": false,
       "url": "https://github.com/illusion0001/PS4-PS5-Game-Patch/archive/refs/heads/main.zip",
       "filename": "PS4-PS5-Game-Patch-main.zip",
       "note": "Community Game-Patches; CUSA und Spielversion müssen passen."
@@ -28,6 +30,7 @@
       "id": "plugins",
       "name": "GoldHEN Plugins Repository",
       "category": "GoldHEN",
+      "installable": false,
       "url": "https://github.com/GoldHEN/GoldHEN_Plugins_Repository/archive/refs/heads/main.zip",
       "filename": "GoldHEN_Plugins_Repository-main.zip",
       "note": "Optionale GoldHEN-Plugins. Vor Aktivierung Kompatibilität prüfen."
@@ -37,7 +40,8 @@
       "name": "pPlay Media Player",
       "category": "Media Center",
       "github_repo": "Cpasjuste/pplay",
-      "asset_regex": "(?i)ps4.*\\.pkg$|\\.pkg$",
+      "asset_regex": "(?i)pplay.*_ps4\\.zip$",
+      "extract_pkg": true,
       "note": "MPV/FFmpeg-basierter Player für PS4; Video, Audio, Untertitel sowie HTTP/FTP-Streaming."
     },
     {
