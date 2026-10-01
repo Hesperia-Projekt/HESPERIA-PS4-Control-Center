@@ -10,6 +10,7 @@ HESPERIA_Data/
 __pycache__/
 *.py[cod]
 build/
+build-*/
 dist/
 *.spec.bak
 

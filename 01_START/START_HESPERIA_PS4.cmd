@@ -1,9 +1,9 @@
 @echo off
 setlocal
 cd /d "%~dp0.."
-title HESPERIA PS4 Control Center v19
-if exist "HESPERIA_PS4_Control_Center_v19.exe" (
-  start "HESPERIA PS4 Control Center" "HESPERIA_PS4_Control_Center_v19.exe"
+title HESPERIA PS4 Control Center v20
+if exist "HESPERIA_PS4_Control_Center_v20.exe" (
+  start "HESPERIA PS4 Control Center" "HESPERIA_PS4_Control_Center_v20.exe"
   goto :eof
 )
 where py >nul 2>&1 && (py -3 "03_SERVER\server.py" & goto :eof)

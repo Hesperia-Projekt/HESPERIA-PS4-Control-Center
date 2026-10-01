@@ -20,7 +20,7 @@ DL, USB, LOG = BASE/'07_DOWNLOADS', BASE/'08_USB_EXPORT', BASE/'10_LOGS'
 LIB = BASE/'09_RETRO'/'LIBRARY'
 DOWNLOAD_INDEX = DL/'download_index.json'
 PORT, RPI_PORTS = 8088, (12800,12801)
-UA = {'User-Agent': 'HESPERIA-PS4-Control-Center-v19'}
+UA = {'User-Agent': 'HESPERIA-PS4-Control-Center-v20'}
 STATE, STATE_LOCK = {'ps4': None, 'queue': [], 'last_scan': [], 'started': int(time.time()), 'jobs': {}, 'transfers': []}, threading.Lock()
 for folder in (DL, USB, LOG, LIB): folder.mkdir(parents=True, exist_ok=True)
 
@@ -156,7 +156,7 @@ def log_event(event,data):
     with open(LOG/'activity.jsonl','a',encoding='utf-8') as handle: handle.write(json.dumps({'at':time.strftime('%Y-%m-%dT%H:%M:%S'),'event':event,**data},ensure_ascii=False)+'\n')
 
 class Handler(SimpleHTTPRequestHandler):
-    server_version='HESPERIA/19'
+    server_version='HESPERIA/20'
     def log_message(self,fmt,*args): log_event('http',{'message':fmt%args})
     def translate_path(self,path):
         requested=unquote(urlparse(path).path)
@@ -236,7 +236,7 @@ class Handler(SimpleHTTPRequestHandler):
             with STATE_LOCK:
                 state={key:STATE[key] for key in ('ps4','queue','last_scan','started')}
                 state['transfers']=[dict(item) for item in STATE['transfers']]
-            return self._json({'ok':True,'version':'19.0','http_port':PORT,'local_url':f'http://127.0.0.1:{PORT}','lan_url':f'http://{local_ip()}:{PORT}','local_ips':local_ipv4_addresses(),'downloads':downloads,**state})
+            return self._json({'ok':True,'version':'20.0','http_port':PORT,'local_url':f'http://127.0.0.1:{PORT}','lan_url':f'http://{local_ip()}:{PORT}','local_ips':local_ipv4_addresses(),'downloads':downloads,**state})
         if path=='/api/catalog':
             # Return local catalog immediately. GitHub checks happen only after
             # the user asks to download a package, so the first render is fast.
@@ -383,7 +383,7 @@ if __name__=='__main__':
     if not httpd:
         raise RuntimeError('Kein freier Port zwischen 8088 und 8097 verfügbar.')
     pc_url=f'http://127.0.0.1:{PORT}'
-    print('HESPERIA PS4 Control Center v19')
+    print('HESPERIA PS4 Control Center v20')
     print('PC :',pc_url)
     print('PS4:',', '.join(f'http://{address}:{PORT}' for address in local_ipv4_addresses()))
     print('Windows-Firewall beim ersten Start für private Netzwerke erlauben.')
