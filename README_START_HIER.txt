@@ -1,13 +1,13 @@
-HESPERIA PS4 CONTROL CENTER v24
+HESPERIA PS4 CONTROL CENTER v25
 =============================
-1) 01_START\HESPERIA_PS4_Control_Center_v24.exe starten (alternativ START_HESPERIA_PS4.cmd)
+1) 01_START\HESPERIA_PS4_Control_Center_v25.exe starten (alternativ START_HESPERIA_PS4.cmd)
 2) Die App öffnet den PC-Browser automatisch; bei belegtem Standardport wählt sie dynamisch einen freien Port zwischen 8088 und 8097.
 3) Die Seitenleiste zeigt die vollständigen PC-Adressen mit dem tatsächlich aktiven Port. Für die PS4 die Adresse desselben LANs im PS4-Browser öffnen.
 4) GoldHEN auf der eigenen PS4 starten. Im Schnellstart die RPI-Paketquelle öffnen, Remote Package Installer PKG laden und über „Lokale PKG importieren“ in die Bibliothek übernehmen.
 5) RPI einmal per USB und normalem Package Installer auf der PS4 installieren, danach die RPI-App öffnen und geöffnet lassen.
 6) „PS4 suchen“ wählen. Falls die automatische Suche nichts findet, PS4-IP in Einstellungen > Netzwerk > Verbindungsstatus anzeigen nachsehen und manuell verbinden.
 7) Pakete auswählen -> herunterladen. Fortschritt, Geschwindigkeit und geschätzte Restzeit erscheinen live.
-8) Danach „An PS4 installieren“ oder „USB-Ordner erstellen“ wählen. Bei Remote-Install zeigt ein zweiter Balken den Transfer vom PC zur PS4 mit Tempo und Restzeit. USB-Exporte legen PKGs direkt ins Stammverzeichnis und Zusatzdaten nach DATA; im GoldHEN Package Installer kann „Install All“ die sichtbaren PKGs nacheinander installieren (Background Installation dafür ausschalten). Der lokale PKG-Server unterstützt HTTP-Bytebereiche, die RPI für PKG-Metadaten benötigt. Die PC-Adresse wird passend zum Netz der verbundenen PS4 ermittelt und angezeigt.
+8) Danach „An PS4 installieren“ oder „Sammelinstallation erstellen“ wählen. Bei Remote-Install zeigt ein zweiter Balken den Transfer vom PC zur PS4 mit Tempo und Restzeit. Für USB den INHALT des Exportordners ins Stammverzeichnis eines exFAT-Sticks kopieren. GoldHEN Package Installer → Package Source USB → „Install All“ wählen; fehlt die Option, „Background Installation“ ausschalten. Der lokale PKG-Server unterstützt HTTP-Bytebereiche, die RPI für PKG-Metadaten benötigt. Die PC-Adresse wird passend zum Netz der verbundenen PS4 ermittelt und angezeigt.
 
 Voraussetzungen für die automatische Installation: eigene PS4, GoldHEN, aktiver Remote Package Installer (üblicherweise Port 12800, manche Builds 12801), PC/PS4 im gleichen privaten Netzwerk und Windows-Firewall-Freigabe für HESPERIA.
 
