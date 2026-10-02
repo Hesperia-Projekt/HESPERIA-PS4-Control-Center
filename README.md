@@ -7,14 +7,14 @@ Local Windows control center with a browser-based dashboard for managing package
 - `03_SERVER/server.py` — local HTTP server, PS4/RPI discovery, package serving, and transfer endpoints.
 - `02_WEB_UI/` — responsive black/graphite UI with restrained neon-blue accents.
 - `04_CONFIG/sources.json` — community package catalog and source metadata.
-- `01_START/HESPERIA_PS4_Control_Center_v27.exe` — standalone Windows build with bundled web UI/config and embedded app icon.
-- `work/pyinstaller-v12/HESPERIA_PS4_Control_Center_v27.spec` — build definition for the standalone EXE.
+- `01_START/HESPERIA_PS4_Control_Center_v28.exe` — standalone Windows build with bundled web UI/config and embedded app icon.
+- `work/pyinstaller-v12/HESPERIA_PS4_Control_Center_v28.spec` — build definition for the standalone EXE.
 
 No game dumps, ROMs, BIOS files, keys, or licenses are included. Use software and packages only when you have the rights to do so. Remote installation requires GoldHEN and a running Remote Package Installer on a PS4 you own; the app does not jailbreak or enable a console by itself.
 
 ## Run
 
-On Windows, start `01_START/HESPERIA_PS4_Control_Center_v27.exe`. It opens the local dashboard in the default browser and displays the LAN address for the PS4. Allow the app through Windows Firewall on private networks if prompted. The standalone build stores writable data in `HESPERIA_Data` beside the EXE.
+On Windows, start `01_START/HESPERIA_PS4_Control_Center_v28.exe`. It opens the local dashboard in the default browser and displays the LAN address for the PS4. Allow the app through Windows Firewall on private networks if prompted. The standalone build stores writable data in `HESPERIA_Data` beside the EXE.
 
 Alternatively, with Python 3 installed, run `python 03_SERVER/server.py` from the repository root.
 
@@ -23,7 +23,7 @@ Alternatively, with Python 3 installed, run `python 03_SERVER/server.py` from th
 ```powershell
 python -m pip install pyinstaller==5.13.2
 python -m PyInstaller --noconfirm --clean --distpath dist --workpath build `
-  work/pyinstaller-v12/HESPERIA_PS4_Control_Center_v27.spec
+  work/pyinstaller-v12/HESPERIA_PS4_Control_Center_v28.spec
 ```
 
 The spec bundles the UI, catalog, and retro runtime metadata as read-only resources; logs, downloads, USB exports, and the library remain writable local data.
