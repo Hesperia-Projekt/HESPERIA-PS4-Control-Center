@@ -20,7 +20,7 @@ DL, USB, LOG = BASE/'07_DOWNLOADS', BASE/'08_USB_EXPORT', BASE/'10_LOGS'
 LIB = BASE/'09_RETRO'/'LIBRARY'
 DOWNLOAD_INDEX = DL/'download_index.json'
 PORT, RPI_PORTS = 8088, (12800,12801)
-UA = {'User-Agent': 'HESPERIA-PS4-Control-Center-v28'}
+UA = {'User-Agent': 'HESPERIA-PS4-Control-Center-v29'}
 STATE, STATE_LOCK = {'ps4': None, 'queue': [], 'last_scan': [], 'started': int(time.time()), 'jobs': {}, 'transfers': []}, threading.Lock()
 for folder in (DL, USB, LOG, LIB): folder.mkdir(parents=True, exist_ok=True)
 
@@ -271,7 +271,7 @@ class Handler(SimpleHTTPRequestHandler):
                 state['transfers']=[dict(item) for item in STATE['transfers']]
             peer=self.client_address[0]
             can_open_usb=ipaddress.ip_address(peer).is_loopback or peer in local_ipv4_addresses()
-            return self._json({'ok':True,'version':'28.0','http_port':PORT,'local_url':f'http://127.0.0.1:{PORT}','lan_url':f'http://{local_ip()}:{PORT}','local_ips':local_ipv4_addresses(),'downloads':downloads,'offline_packages':offline_packages,'can_open_usb':can_open_usb,**state})
+            return self._json({'ok':True,'version':'29.0','http_port':PORT,'local_url':f'http://127.0.0.1:{PORT}','lan_url':f'http://{local_ip()}:{PORT}','local_ips':local_ipv4_addresses(),'downloads':downloads,'offline_packages':offline_packages,'can_open_usb':can_open_usb,**state})
         if path=='/api/catalog':
             # Return local catalog immediately. GitHub checks happen only after
             # the user asks to download a package, so the first render is fast.
@@ -466,7 +466,7 @@ if __name__=='__main__':
     if not httpd:
         raise RuntimeError('Kein freier Port zwischen 8088 und 8097 verfügbar.')
     pc_url=f'http://127.0.0.1:{PORT}'
-    print('HESPERIA PS4 Control Center v28')
+    print('HESPERIA PS4 Control Center v29')
     print('PC :',pc_url)
     print('PS4:',', '.join(f'http://{address}:{PORT}' for address in local_ipv4_addresses()))
     print('Windows-Firewall beim ersten Start für private Netzwerke erlauben.')
