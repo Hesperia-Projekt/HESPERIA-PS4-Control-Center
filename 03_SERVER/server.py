@@ -20,7 +20,7 @@ DL, USB, LOG = BASE/'07_DOWNLOADS', BASE/'08_USB_EXPORT', BASE/'10_LOGS'
 LIB = BASE/'09_RETRO'/'LIBRARY'
 DOWNLOAD_INDEX = DL/'download_index.json'
 PORT, RPI_PORTS = 8088, (12800,12801)
-UA = {'User-Agent': 'HESPERIA-PS4-Control-Center-v25'}
+UA = {'User-Agent': 'HESPERIA-PS4-Control-Center-v26'}
 STATE, STATE_LOCK = {'ps4': None, 'queue': [], 'last_scan': [], 'started': int(time.time()), 'jobs': {}, 'transfers': []}, threading.Lock()
 for folder in (DL, USB, LOG, LIB): folder.mkdir(parents=True, exist_ok=True)
 
@@ -40,6 +40,10 @@ def sha256(path):
     with open(path,'rb') as handle:
         for block in iter(lambda:handle.read(1024*1024),b''): digest.update(block)
     return digest.hexdigest()
+def is_ps4_pkg(path):
+    try:
+        with open(path,'rb') as handle: return handle.read(4)==b'\x7fCNT'
+    except OSError: return False
 def local_ip():
     sock=socket.socket(socket.AF_INET,socket.SOCK_DGRAM)
     try: sock.connect(('8.8.8.8',80)); return sock.getsockname()[0]
@@ -267,7 +271,7 @@ class Handler(SimpleHTTPRequestHandler):
                 state['transfers']=[dict(item) for item in STATE['transfers']]
             peer=self.client_address[0]
             can_open_usb=ipaddress.ip_address(peer).is_loopback or peer in local_ipv4_addresses()
-            return self._json({'ok':True,'version':'25.0','http_port':PORT,'local_url':f'http://127.0.0.1:{PORT}','lan_url':f'http://{local_ip()}:{PORT}','local_ips':local_ipv4_addresses(),'downloads':downloads,'offline_packages':offline_packages,'can_open_usb':can_open_usb,**state})
+            return self._json({'ok':True,'version':'26.0','http_port':PORT,'local_url':f'http://127.0.0.1:{PORT}','lan_url':f'http://{local_ip()}:{PORT}','local_ips':local_ipv4_addresses(),'downloads':downloads,'offline_packages':offline_packages,'can_open_usb':can_open_usb,**state})
         if path=='/api/catalog':
             # Return local catalog immediately. GitHub checks happen only after
             # the user asks to download a package, so the first render is fast.
@@ -312,6 +316,7 @@ class Handler(SimpleHTTPRequestHandler):
                             block=self.rfile.read(min(1024*1024,size-received))
                             if not block: raise ConnectionError('Upload unterbrochen')
                             output.write(block); received+=len(block)
+                    if not is_ps4_pkg(temporary): return self._json({'error':'Die Datei hat keinen gültigen PS4-PKG-Kopf (7F 43 4E 54).'},400)
                     temporary.replace(destination)
                 finally: temporary.unlink(missing_ok=True)
                 log_event('import',{'file':name,'bytes':received})
@@ -373,7 +378,7 @@ class Handler(SimpleHTTPRequestHandler):
                 # GoldHEN's USB Package Installer scans the drive root (usb:/).
                 pkg_dir, data_dir=export_root, export_root/'DATA'
                 pkg_dir.mkdir(parents=True); data_dir.mkdir(parents=True)
-                copied=[]; missing_items=[]
+                copied=[]; missing_items=[]; failed_items=[]
                 for item in cfg()['items']:
                     if item['id'] not in selected_ids: continue
                     entry=read_download_index().get(item['id'])
@@ -382,15 +387,27 @@ class Handler(SimpleHTTPRequestHandler):
                     source=DL/Path(entry['file']).name
                     if not source.is_file(): continue
                     target=(pkg_dir if source.suffix.lower()=='.pkg' else data_dir)/source.name
-                    shutil.copy2(source,target)
-                    copied.append({'id':item['id'],'file':target.relative_to(export_root).as_posix(),'bytes':target.stat().st_size,'sha256':sha256(target)})
+                    if source.suffix.lower()=='.pkg' and not is_ps4_pkg(source):
+                        failed_items.append({'name':item['name'],'file':source.name,'reason':'Kein PS4-PKG-Kopf (7F 43 4E 54).'})
+                        continue
+                    source_hash=sha256(source); shutil.copy2(source,target); copied_hash=sha256(target)
+                    if source_hash!=copied_hash:
+                        target.unlink(missing_ok=True); failed_items.append({'name':item['name'],'file':source.name,'reason':'SHA-256 nach dem Kopieren stimmt nicht überein.'}); continue
+                    copied.append({'id':item['id'],'name':item['name'],'file':target.relative_to(export_root).as_posix(),'bytes':target.stat().st_size,'sha256':copied_hash,'verified':True})
                 for name in selected_files:
                     source=DL/name
                     if source.is_file() and source.suffix.lower()=='.pkg':
+                        if not is_ps4_pkg(source):
+                            failed_items.append({'name':name,'file':name,'reason':'Kein PS4-PKG-Kopf (7F 43 4E 54).'})
+                            continue
                         target=pkg_dir/source.name
+                        source_hash=sha256(source)
                         if not target.exists(): shutil.copy2(source,target)
+                        copied_hash=sha256(target)
+                        if source_hash!=copied_hash:
+                            target.unlink(missing_ok=True); failed_items.append({'name':name,'file':name,'reason':'SHA-256 nach dem Kopieren stimmt nicht überein.'}); continue
                         if not any(entry['file']==target.relative_to(export_root).as_posix() for entry in copied):
-                            copied.append({'id':'local_pkg','file':target.relative_to(export_root).as_posix(),'bytes':target.stat().st_size,'sha256':sha256(target)})
+                            copied.append({'id':'local_pkg','name':name,'file':target.relative_to(export_root).as_posix(),'bytes':target.stat().st_size,'sha256':copied_hash,'verified':True})
                 bootstrap=export_root/'Remote_Package_Installer.pkg'
                 if bootstrap.exists():
                     bootstrap_note='Remote Package Installer wurde gefunden und liegt im USB-Stammverzeichnis bereit.'
@@ -398,9 +415,10 @@ class Handler(SimpleHTTPRequestHandler):
                     bootstrap_note='Für die einmalige RPI-Einrichtung die rechtmäßig bezogene Datei Remote_Package_Installer.pkg in dieses USB-Stammverzeichnis kopieren und auf der PS4 über den normalen Package Installer installieren.'
                 (export_root/'README_INSTALLATION.txt').write_text(
                     'HESPERIA USB-Sammelinstallation\n\nVORBEREITUNG AM PC\n1. USB-Stick als exFAT formatieren (FAT32 wird ebenfalls erkannt, hat aber eine 4-GB-Dateigrenze).\n2. Den INHALT dieses Exportordners – alle .pkg-Dateien sowie optional DATA, MANIFEST.json und diese Anleitung – in das Stammverzeichnis des USB-Sticks kopieren. Nicht nur den HESPERIA_USB_INSTALL_-Ordner als Unterordner kopieren.\n\nINSTALLATION AUF DER PS4\n3. GoldHEN aktivieren und USB-Stick einstecken.\n4. GoldHEN → Debug Settings → Package Installer öffnen. Package Source auf USB (usb:/) stellen.\n5. „Install All“ wählen. Falls die Option fehlt, Enable Background Installation ausschalten.\n6. Abhängige Inhalte in passender Reihenfolge installieren (z. B. Basispaket vor Update); Paketnamen und MANIFEST prüfen.\n\nDie Sammelinstallation enthält mehrere unveränderte PKGs, keine verschmolzene Sammel-PKG. Datenbanken unter DATA sind keine installierbaren PKGs.\n\n'+bootstrap_note+'\n\nRemote Package Installer ist nur für LAN-Installationen nötig und muss danach auf der PS4 geöffnet sein.\n',encoding='utf-8')
-                (export_root/'MANIFEST.json').write_text(json.dumps(copied,ensure_ascii=False,indent=2),encoding='utf-8')
-                log_event('usb_export',{'count':len(copied),'ids':list(selected_ids)})
-                return self._json({'ok':True,'path':str(export_root),'files':copied,'not_downloaded':missing_items,'bootstrap_note':bootstrap_note})
+                manifest={'schema_version':1,'created_at':int(time.time()),'package_count':sum(1 for entry in copied if entry['file'].lower().endswith('.pkg')),'verified':all(entry.get('verified') for entry in copied),'files':copied,'not_downloaded':missing_items,'failed_items':failed_items}
+                (export_root/'MANIFEST.json').write_text(json.dumps(manifest,ensure_ascii=False,indent=2),encoding='utf-8')
+                log_event('usb_export',{'count':len(copied),'failed':len(failed_items),'ids':list(selected_ids)})
+                return self._json({'ok':True,'path':str(export_root),'files':copied,'not_downloaded':missing_items,'failed_items':failed_items,'manifest':manifest,'bootstrap_note':bootstrap_note})
             if path=='/api/install':
                 requested=[Path(str(name)).name for name in body.get('files',[])]
                 selected_ids=set(body.get('ids',[]))
@@ -448,7 +466,7 @@ if __name__=='__main__':
     if not httpd:
         raise RuntimeError('Kein freier Port zwischen 8088 und 8097 verfügbar.')
     pc_url=f'http://127.0.0.1:{PORT}'
-    print('HESPERIA PS4 Control Center v25')
+    print('HESPERIA PS4 Control Center v26')
     print('PC :',pc_url)
     print('PS4:',', '.join(f'http://{address}:{PORT}' for address in local_ipv4_addresses()))
     print('Windows-Firewall beim ersten Start für private Netzwerke erlauben.')

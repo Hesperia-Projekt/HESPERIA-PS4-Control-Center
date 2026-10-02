@@ -1,3 +1,5 @@
-HESPERIA PS4 Control Center v25 – VERIFIED USB INSTALL-ALL WORKFLOW
+HESPERIA PS4 Control Center v26 – VERIFIED USB PACKAGE MANIFEST
 Build: 01.10.2026
 Basis: v11.1 RPI USB FIX
+
+v26: importiert nur PKG-Container mit passender Magic-ID; USB-Export erzeugt ein SHA-256-verifiziertes Manifest.

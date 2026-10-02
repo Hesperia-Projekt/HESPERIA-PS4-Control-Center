@@ -1,6 +1,6 @@
-HESPERIA PS4 CONTROL CENTER v25
+HESPERIA PS4 CONTROL CENTER v26
 =============================
-1) 01_START\HESPERIA_PS4_Control_Center_v25.exe starten (alternativ START_HESPERIA_PS4.cmd)
+1) 01_START\HESPERIA_PS4_Control_Center_v26.exe starten (alternativ START_HESPERIA_PS4.cmd)
 2) Die App öffnet den PC-Browser automatisch; bei belegtem Standardport wählt sie dynamisch einen freien Port zwischen 8088 und 8097.
 3) Die Seitenleiste zeigt die vollständigen PC-Adressen mit dem tatsächlich aktiven Port. Für die PS4 die Adresse desselben LANs im PS4-Browser öffnen.
 4) GoldHEN auf der eigenen PS4 starten. Im Schnellstart die RPI-Paketquelle öffnen, Remote Package Installer PKG laden und über „Lokale PKG importieren“ in die Bibliothek übernehmen.
